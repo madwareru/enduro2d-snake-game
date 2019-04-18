@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
-project(enduro2d-bootstrap)
+project(enduro2d_snake_game)
 
 #
 # linking mode
