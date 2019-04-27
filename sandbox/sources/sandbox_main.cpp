@@ -116,7 +116,7 @@ namespace
             ship_model.set_mesh(ship_mesh_asset);
             ship_model.regenerate_geometry(the<render>());
             auto ship_model_asset = model_asset::create(ship_model);
-            if(!ship_mesh_asset)
+            if(!ship_model_asset)
                 return false;
 
             ecs::entity scene_e = the<world>().registry().create_entity();
