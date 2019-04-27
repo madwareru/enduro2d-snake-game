@@ -23,7 +23,7 @@ namespace
                 the<window>().set_should_close(true);
             }
 
-            if ( k.is_key_pressed(keyboard_key::lsuper) && k.is_key_just_released(keyboard_key::enter) ) {
+            if ( k.is_key_pressed(keyboard_key::lalt) && k.is_key_just_released(keyboard_key::enter) ) {
                 the<window>().toggle_fullscreen(!the<window>().fullscreen());
             }
         }

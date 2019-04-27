@@ -32,7 +32,7 @@ endif()
 # include enduro2d
 #
 
-set(E2D_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(E2D_BUILD_SAMPLES ON CACHE BOOL "" FORCE)
 set(E2D_BUILD_TOOLSET OFF CACHE BOOL "" FORCE)
 set(E2D_BUILD_UNTESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(modules/enduro2d)
@@ -45,6 +45,11 @@ file(GLOB_RECURSE PROJECT_SOURCES
     sources/*.*)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
     ${PROJECT_SOURCES})
+
+file(GLOB_RECURSE SANDBOX_SOURCES
+    sandbox/sources/*.*)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
+    ${SANDBOX_SOURCES})
 
 #
 # project executable
@@ -60,3 +65,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO)
+
+add_executable(enduro_sandbox
+    ${SANDBOX_SOURCES})
+target_link_libraries(enduro_sandbox
+    ${E2D_LIBRARIES})
+target_include_directories(enduro_sandbox
+    PRIVATE ${E2D_INCLUDE_DIRS})
+set_target_properties(enduro_sandbox PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO)
+
+add_custom_command(TARGET enduro_sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/sources/data
+    ${CMAKE_CURRENT_BINARY_DIR}/data)
