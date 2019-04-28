@@ -152,8 +152,8 @@ namespace
         bool create_systems() {
             ecs::registry_filler(the<world>().registry())
                 .system<game_system>(world::priority_update)
-                .system<camera_system>(world::priority_pre_render)
-                .system<sample_system>(world::priority_render-1);
+                .system<sample_system>(world::priority_pre_render)
+                .system<camera_system>(world::priority_pre_render);
             return true;
         }
     };
