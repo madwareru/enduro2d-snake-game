@@ -4,6 +4,7 @@
  * Copyright (C) 2018 Matvey Cherevko
  ******************************************************************************/
 #include <enduro2d/enduro2d.hpp>
+#include <generated/sandbox_gen.h>
 using namespace e2d;
 
 namespace
@@ -12,6 +13,7 @@ namespace
     public:
         void process(ecs::registry& owner) override {
             E2D_UNUSED(owner);
+
             const keyboard& k = the<input>().keyboard();
 
             if ( k.is_key_just_released(keyboard_key::f12) ) {
@@ -51,7 +53,6 @@ namespace
             owner.for_joined_components<ship_tag, renderer>(
                 [&time](const ecs::const_entity&, const ship_tag& tag, renderer& r){
                     E2D_UNUSED(tag);
-
                     r.properties()
                         .property("u_time", time);
                 });
@@ -77,6 +78,7 @@ namespace
         return {
             {0, 1},
             {0, 0},
+
             {1, 1},
             {1, 0}
         };
@@ -158,10 +160,10 @@ namespace
 
 int e2d_main(int argc, char *argv[]) {
     const auto starter_params = starter::parameters(
-        engine::parameters("sandbox", "enduro2d")
+        engine::parameters(SANDBOX_NAME, "enduro2d")
             .timer_params(engine::timer_parameters()
                 .maximal_framerate(100)))
-            .library_root(url{"resources://data"});
+            .library_root(url{"resources://" SANDBOX_DATA_DIR});
 
     modules::initialize<starter>(argc, argv, starter_params).start<game>();
     modules::shutdown<starter>();
