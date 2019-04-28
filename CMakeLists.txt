@@ -46,11 +46,6 @@ file(GLOB_RECURSE PROJECT_SOURCES
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
     ${PROJECT_SOURCES})
 
-file(GLOB_RECURSE SANDBOX_SOURCES
-    sandbox/sources/*.*)
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
-    ${SANDBOX_SOURCES})
-
 #
 # project executable
 #
@@ -66,18 +61,33 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO)
 
-add_executable(enduro_sandbox
-    ${SANDBOX_SOURCES})
-target_link_libraries(enduro_sandbox
-    ${E2D_LIBRARIES})
-target_include_directories(enduro_sandbox
-    PRIVATE ${E2D_INCLUDE_DIRS})
-set_target_properties(enduro_sandbox PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED YES
-    CXX_EXTENSIONS NO)
+#
+# sandboxes
+#
 
-add_custom_command(TARGET enduro_sandbox POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/sources/data
-    ${CMAKE_CURRENT_BINARY_DIR}/data)
+function(add_sandbox NAME)
+    set(SANDBOX_NAME sandbox_${NAME})
+
+    file(GLOB_RECURSE ${SANDBOX_NAME}_sources
+        ${SANDBOX_NAME}/sources/*.*)
+    set(SANDBOX_SOURCES ${${SANDBOX_NAME}_sources})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SANDBOX_SOURCES})
+
+    add_executable(${SANDBOX_NAME}
+        ${SANDBOX_SOURCES})
+    target_link_libraries(${SANDBOX_NAME}
+        ${E2D_LIBRARIES})
+    target_include_directories(${SANDBOX_NAME}
+        PRIVATE ${E2D_INCLUDE_DIRS})
+    set_target_properties(${SANDBOX_NAME} PROPERTIES
+        CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO)
+
+    add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/${SANDBOX_NAME}/sources/data
+        $<TARGET_FILE_DIR:${SANDBOX_NAME}>/data)
+endfunction(add_sandbox)
+
+add_sandbox(sample00_ecsified)

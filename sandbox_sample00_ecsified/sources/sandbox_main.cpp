@@ -51,6 +51,7 @@ namespace
             owner.for_joined_components<ship_tag, renderer>(
                 [&time](const ecs::const_entity&, const ship_tag& tag, renderer& r){
                     E2D_UNUSED(tag);
+
                     r.properties()
                         .property("u_time", time);
                 });
