@@ -82,7 +82,8 @@ function(add_sandbox NAME)
         ${E2D_LIBRARIES})
     target_include_directories(${SANDBOX_NAME}
         PRIVATE ${E2D_INCLUDE_DIRS}
-        PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${SANDBOX_NAME})
+        PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${SANDBOX_NAME}
+        PRIVATE sandbox_shared)
     set_target_properties(${SANDBOX_NAME} PROPERTIES
         CXX_STANDARD 14
         CXX_STANDARD_REQUIRED YES

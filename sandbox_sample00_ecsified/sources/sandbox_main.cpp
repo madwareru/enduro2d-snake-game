@@ -5,6 +5,7 @@
  ******************************************************************************/
 #include <enduro2d/enduro2d.hpp>
 #include <generated/sandbox_gen.h>
+#include <shared.hpp>
 using namespace e2d;
 
 namespace
@@ -158,14 +159,4 @@ namespace
     };
 }
 
-int e2d_main(int argc, char *argv[]) {
-    const auto starter_params = starter::parameters(
-        engine::parameters(SANDBOX_NAME, "enduro2d")
-            .timer_params(engine::timer_parameters()
-                .maximal_framerate(100)))
-            .library_root(url{"resources://" SANDBOX_DATA_DIR});
-
-    modules::initialize<starter>(argc, argv, starter_params).start<game>();
-    modules::shutdown<starter>();
-    return 0;
-}
+SANDBOX_MAIN(game)
