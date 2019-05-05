@@ -4,7 +4,6 @@ attribute vec3 a_vertex;
 attribute vec2 a_st0;
 attribute vec4 a_color0;
 
-uniform float u_time;
 uniform mat4 u_matrix_m;
 uniform mat4 u_matrix_vp;
 
