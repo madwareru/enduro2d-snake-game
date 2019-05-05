@@ -5,6 +5,9 @@
     int e2d_main(int argc, char *argv[]) {                                           \
         const auto starter_params = starter::parameters(                             \
             engine::parameters(SANDBOX_NAME, "enduro2d")                             \
+                .window_params(engine::window_parameters()                           \
+                    .size({1280, 720})                                               \
+                    .caption(SANDBOX_NAME))                                          \
                 .timer_params(engine::timer_parameters()                             \
                     .maximal_framerate(100)))                                        \
                 .library_root(url{"resources://" SANDBOX_DATA_DIR});                 \

@@ -96,3 +96,4 @@ function(add_sandbox NAME)
 endfunction(add_sandbox)
 
 add_sandbox(sample00_ecsified)
+add_sandbox(life_game)

@@ -1,0 +1,25 @@
+{
+    "passes" : [{
+        "shader" : "tilemap_shader.json",
+        "state_block" : {
+            "blending_state" : {
+                "src_factor" : "src_alpha",
+                "dst_factor" : "one_minus_src_alpha"
+            },
+            "capabilities_state" : {
+                "blending" : true
+            }
+        }
+    }],
+    "property_block" : {
+        "samplers" : [{
+            "name" : "u_texture",
+            "texture" : "life_tileset.png",
+            "filter" : {
+                "min" : "nearest",
+                "mag" : "nearest"
+            },
+            "wrap" : "clamp"
+        }]
+    }
+}
