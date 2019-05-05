@@ -5,20 +5,18 @@
 #include <enduro2d/enduro2d.hpp>
 
 namespace map_definition {
-    const uint8_t map_width = 45;
+    const uint8_t map_width  = 45;
     const uint8_t map_height = 45;
-    const uint8_t tile_size = 16;
+    const uint8_t tile_size  = 16;
 
     extern std::array<bool, map_width*map_height> buffer;
-    extern e2d::color32 color_buffer[map_width*map_height*4];
 
     const uint8_t back_tile_1  = 0;
     const uint8_t back_tile_2  = 1;
     const uint8_t living_tile  = 2;
     const uint8_t blocker_tile = 3;
 
-    e2d::color32 color_buffer[map_width*map_height*4] = {e2d::color32::white(),};
-    std::array<bool, map_width*map_height> buffer {false};
+    std::array<bool, map_width*map_height> buffer {false,};
 
     const std::array<uint8_t, map_width*map_height> background_layer_data
     {

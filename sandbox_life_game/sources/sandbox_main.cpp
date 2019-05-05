@@ -43,7 +43,7 @@ namespace
                     cam.viewport(
                         the<window>().real_size());
                     cam.projection(math::make_orthogonal_lh_matrix4(
-                        the<window>().virtual_size().cast_to<f32>(), 0.f, 1000.f));
+                        the<window>().real_size().cast_to<f32>(), 0.f, 1000.f));
                 }
             });
         }
@@ -64,7 +64,7 @@ namespace
         static const u32 pattern[6] = {0, 1, 2, 2, 1, 3};
         vector<u32> result;
         result.reserve(ld.width * ld.height * 6);
-        size_t quad_off = 0;
+        u32 quad_off = 0;
         for(size_t i = ld.width * ld.height; i; --i, quad_off += 4) {
             for(size_t j = 0; j < 6; ++j) {
                 result.push_back(quad_off + pattern[j]);
@@ -173,7 +173,7 @@ namespace
             const auto time = the<engine>().time();
             owner.for_joined_components<life_data>(
                 [&time](const ecs::const_entity&, life_data& data){
-                    if(time - data.last_generation_time < 0.033f)
+                    if(time - data.last_generation_time < 0.33f)
                         return;
                     data.last_generation_time = time;
 
@@ -211,10 +211,10 @@ namespace
                             } else {
                                 map_definition::buffer[stride(i, j)] =
                                      data.living_layer[stride(i, j)];
-                            }
-                            data.living_layer.swap(map_definition::buffer);
+                            }                            
                         }
                     }
+                    data.living_layer.swap(map_definition::buffer);
                     #undef get_living_at
                     #undef stride
                     data.is_dirty = true;
@@ -256,7 +256,7 @@ namespace
         }
     private:
 
-        bool create_scene() {
+        bool create_scene() const {
             life_data life_component;
             srand(unsigned(std::time(nullptr)));
             life_component.living_layer.fill(false);
@@ -344,7 +344,7 @@ namespace
             return true;
         }
 
-        bool create_camera() {
+        bool create_camera() const {
             ecs::entity camera_e = the<world>().registry().create_entity();
             ecs::entity_filler(camera_e)
                 .component<camera>(camera()
@@ -353,7 +353,7 @@ namespace
             return true;
         }
 
-        bool create_systems() {
+        bool create_systems() const {
             ecs::registry_filler(the<world>().registry())
                 .system<game_system>(world::priority_update)
                 .system<life_system>(world::priority_update)
