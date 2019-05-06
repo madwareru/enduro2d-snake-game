@@ -28,7 +28,7 @@ $ cmake --build . -- -j8
 $ cd your_bootstrap_repository_directory
 $ mkdir xcode-build && cd xcode-build
 $ cmake -G Xcode ..
-$ open enduro2d-bootstrap.xcodeproj
+$ open enduro2d_snake_game.xcodeproj
 
 # or Visual Studio project
 $ cd your_bootstrap_repository_directory
@@ -37,14 +37,14 @@ $ cmake -G "Visual Studio 15 2017" ..
 # in case of you have msbuild in path:
 $ MSBuild.exe .\ALL_BUILD.vcxproj -property:Configuration={Debug|Release}
 #or if you want to build from within a Visual Studio:
-$ start enduro2d-bootstrap.sln
+$ start enduro2d_snake_game.sln
 ```
 
 ## * Running
 
 ```bash
 $ cd your_bootstrap_build_directory
-$ ./enduro2d-bootstrap
+$ ./enduro2d_snake_game
 ```
 
 ## * Links
