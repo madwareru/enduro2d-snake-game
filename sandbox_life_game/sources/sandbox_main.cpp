@@ -13,42 +13,6 @@ using namespace e2d;
 
 namespace
 {
-    class game_system final : public ecs::system {
-    public:
-        void process(ecs::registry& owner) override {
-            E2D_UNUSED(owner);
-
-            const keyboard& k = the<input>().keyboard();
-
-            if ( k.is_key_just_released(keyboard_key::f12) ) {
-                the<dbgui>().toggle_visible(!the<dbgui>().visible());
-            }
-
-            if ( k.is_key_just_released(keyboard_key::escape) ) {
-                the<window>().set_should_close(true);
-            }
-
-            if ( k.is_key_pressed(keyboard_key::lalt) && k.is_key_just_released(keyboard_key::enter) ) {
-                the<window>().toggle_fullscreen(!the<window>().fullscreen());
-            }
-        }
-    };
-
-    class camera_system final : public ecs::system {
-    public:
-        void process(ecs::registry& owner) override {
-            owner.for_joined_components<camera>(
-            [](const ecs::const_entity&, camera& cam){
-                if ( !cam.target() ) {
-                    cam.viewport(
-                        the<window>().real_size());
-                    cam.projection(math::make_orthogonal_lh_matrix4(
-                        the<window>().real_size().cast_to<f32>(), 0.f, 1000.f));
-                }
-            });
-        }
-    };
-
     struct life_data {
         static const u8 width = map_definition::map_width;
         static const u8 height = map_definition::map_height;
@@ -83,10 +47,10 @@ namespace
         result.reserve(ld.width * ld.height * 4);
         for(uint8_t j = 0; j < ld.height; ++j) {
             for(uint8_t i = 0; i < ld.width; ++i) {
-                result.emplace_back(woff + hw * (i    ), hoff + hh * (j + 1), 0.f);
-                result.emplace_back(woff + hw * (i    ), hoff + hh * (j    ), 0.f);
-                result.emplace_back(woff + hw * (i + 1), hoff + hh * (j + 1), 0.f);
-                result.emplace_back(woff + hw * (i + 1), hoff + hh * (j    ), 0.f);
+                result.emplace_back(woff + hw * (i    ), hoff + hh * (j + 1), 1.f);
+                result.emplace_back(woff + hw * (i    ), hoff + hh * (j    ), 1.f);
+                result.emplace_back(woff + hw * (i + 1), hoff + hh * (j + 1), 1.f);
+                result.emplace_back(woff + hw * (i + 1), hoff + hh * (j    ), 1.f);
             }
         }
         return result;
@@ -164,7 +128,7 @@ namespace
                 result.push_back(c);
                 result.push_back(c);
             }
-        }
+        }        
         return result;
     }
 
@@ -173,7 +137,7 @@ namespace
             const auto time = the<engine>().time();
             owner.for_joined_components<life_data>(
                 [&time](const ecs::const_entity&, life_data& data){
-                    if(time - data.last_generation_time < 0.33f)
+                    if(time - data.last_generation_time < 0.06f)
                         return;
                     data.last_generation_time = time;
 
@@ -248,6 +212,55 @@ namespace
         }
     };
 
+    class game_system final : public ecs::system {
+    public:
+        void process(ecs::registry& owner) override {
+            E2D_UNUSED(owner);
+
+            const keyboard& k = the<input>().keyboard();
+
+            if ( k.is_key_just_released(keyboard_key::f12) ) {
+                the<dbgui>().toggle_visible(!the<dbgui>().visible());
+            }
+
+            if ( k.is_key_just_released(keyboard_key::escape) ) {
+                the<window>().set_should_close(true);
+            }
+
+            if ( k.is_key_pressed(keyboard_key::lalt) && k.is_key_just_released(keyboard_key::enter) ) {
+                the<window>().toggle_fullscreen(!the<window>().fullscreen());
+            } else if ( k.is_key_just_released(keyboard_key::enter) ) {
+                owner.for_joined_components<life_data>(
+                    [](const ecs::const_entity&, life_data& data){
+                        data.is_dirty = true;
+                        for(size_t i = 0; i < data.width * data.height;++i) {
+                            data.living_layer[i] =
+                               ((i / data.width > 0) &&
+                                (i % data.width > 0) &&
+                                (i / data.width < data.height - 1) &&
+                                (i % data.width < data.width  - 1) &&
+                                rand() % 2 == 0);
+                        }
+                });
+            }
+        }
+    };
+
+    class camera_system final : public ecs::system {
+    public:
+        void process(ecs::registry& owner) override {
+            owner.for_joined_components<camera>(
+            [](const ecs::const_entity&, camera& cam){
+                if ( !cam.target() ) {
+                    cam.viewport(
+                        the<window>().real_size());
+                    cam.projection(math::make_orthogonal_lh_matrix4(
+                        the<window>().virtual_size().cast_to<f32>(), 0.f, 1000.f));
+                }
+            });
+        }
+    };
+
     struct game final : public high_application {
         bool initialize() final {
             return create_scene()
@@ -262,10 +275,10 @@ namespace
             life_component.living_layer.fill(false);
             life_component.is_dirty = false;
             for(size_t i = 0; i < map_definition::map_width * map_definition::map_height;++i) {
-                if((i / 45 > 0) &&
-                   (i % 45 > 0) &&
-                   (i / 45 < 44) &&
-                   (i % 45 < 44) &&
+                if((i / map_definition::map_width > 0) &&
+                   (i % map_definition::map_width > 0) &&
+                   (i / map_definition::map_width < map_definition::map_height - 1) &&
+                   (i % map_definition::map_width < map_definition::map_width  - 1) &&
                    rand() % 2 == 0) {
                     life_component.living_layer[i] = true;
                 }

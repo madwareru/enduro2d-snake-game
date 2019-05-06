@@ -1,20 +1,19 @@
 #ifndef MAP_HPP
 #define MAP_HPP
-#include <cstdint>
 #include <array>
 #include <enduro2d/enduro2d.hpp>
 
 namespace map_definition {
-    const uint8_t map_width  = 45;
-    const uint8_t map_height = 45;
-    const uint8_t tile_size  = 16;
+    const e2d::u8 map_width  = 45;
+    const e2d::u8 map_height = 45;
+    const e2d::u8 tile_size  = 16;
 
     extern std::array<bool, map_width*map_height> buffer;
 
-    const uint8_t back_tile_1  = 0;
-    const uint8_t back_tile_2  = 1;
-    const uint8_t living_tile  = 2;
-    const uint8_t blocker_tile = 3;
+    const e2d::u8 back_tile_1  = 0;
+    const e2d::u8 back_tile_2  = 1;
+    const e2d::u8 living_tile  = 2;
+    const e2d::u8 blocker_tile = 3;
 
     std::array<bool, map_width*map_height> buffer {false,};
 
