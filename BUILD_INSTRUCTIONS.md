@@ -34,6 +34,9 @@ $ open enduro2d-bootstrap.xcodeproj
 $ cd your_bootstrap_repository_directory
 $ mkdir msvc-build && cd msvc-build
 $ cmake -G "Visual Studio 15 2017" ..
+# in case of you have msbuild in path:
+$ MSBuild.exe .\ALL_BUILD.vcxproj -property:Configuration={Debug|Release}
+#or if you want to build from within a Visual Studio:
 $ start enduro2d-bootstrap.sln
 ```
 
