@@ -1,8 +1,3 @@
-/*******************************************************************************
- * This file is part of the "Enduro2D"
- * For conditions of distribution and use, see copyright notice in LICENSE.md
- * Copyright (C) 2018 Matvey Cherevko
- ******************************************************************************/
 #include <enduro2d/enduro2d.hpp>
 #include <generated/sandbox_gen.h>
 #include <shared.hpp>
@@ -108,18 +103,32 @@ namespace
                 return false;
 
             mesh ship_mesh;
-            ship_mesh.set_vertices(generate_vertices());
-            ship_mesh.set_indices(0, generate_quad_indices());
-            ship_mesh.set_colors(0, generate_colors());
-            ship_mesh.set_uvs(0, generate_uvs());
-            auto ship_mesh_asset = mesh_asset::create(ship_mesh);
+            vector<v3f> tngs(0);
+            vector<v3f> bitngs(0);
+
+            ship_mesh.set_vertices(std::move(generate_vertices()));
+            ship_mesh.set_indices(0, std::move(generate_quad_indices()));
+            ship_mesh.set_uvs(0, std::move(generate_uvs()));
+            ship_mesh.set_colors(0, std::move(generate_colors()));
+            ship_mesh.set_tangents(std::move(tngs));
+            ship_mesh.set_bitangents(std::move(bitngs));
+
+            auto ship_mesh_asset = mesh_asset::create(std::move(ship_mesh));
             if(!ship_mesh_asset)
                 return false;
 
-            model ship_model;
-            ship_model.set_mesh(ship_mesh_asset);
-            ship_model.regenerate_geometry(the<render>());
-            auto ship_model_asset = model_asset::create(ship_model);
+            auto ship_model_promise = the<deferrer>().do_in_main_thread([ship_mesh_asset]() {
+                    model content;
+                    content.set_mesh(ship_mesh_asset);
+                    content.regenerate_geometry(the<render>());
+                    return content;
+                })
+                .then([](auto&& content) {
+                    return model_asset::create(
+                        std::forward<decltype(content)>(content));
+                });
+            the<deferrer>().active_safe_wait_promise(ship_model_promise);
+            auto ship_model_asset = ship_model_promise.get_or_default(nullptr);
             if(!ship_model_asset)
                 return false;
 

@@ -1,8 +1,3 @@
-/*******************************************************************************
- * This file is part of the "Enduro2D"
- * For conditions of distribution and use, see copyright notice in LICENSE.md
- * Copyright (C) 2018 Matvey Cherevko
- ******************************************************************************/
 #include <enduro2d/enduro2d.hpp>
 #include <generated/sandbox_gen.h>
 #include <shared.hpp>
@@ -19,116 +14,130 @@ namespace
         ecs::entity_id foreground_e_id;
         float last_generation_time;
         bool is_dirty;
-        u8 nop; // to get rid of padding warning
         std::array<u8, map_definition::map_width*map_definition::map_height> background_layer;
         std::array<bool, map_definition::map_width*map_definition::map_height> living_layer;
+        std::array<bool, map_definition::map_width*map_definition::map_height> living_buffer;
     };
 
-    vector<u32> generate_tile_map_indices(const life_data& ld) noexcept {
+    template<typename Ft>
+    void generate_tilemap_indices_internal(const life_data& ld,
+                                           vector<u32>& dest,
+                                           Ft&& pred) {
         static const u32 pattern[6] = {0, 1, 2, 2, 1, 3};
-        vector<u32> result;
-        result.reserve(ld.width * ld.height * 6);
         u32 quad_off = 0;
-        for(size_t i = ld.width * ld.height; i; --i, quad_off += 4) {
-            for(size_t j = 0; j < 6; ++j) {
-                result.push_back(quad_off + pattern[j]);
+        for(size_t j = 0; j < ld.height; ++j){
+            for(size_t i = 0; i < ld.width; ++i) {
+                if(!pred(ld, i, j)) {
+                    continue;
+                }
+                for(size_t k = 0; k < 6; ++k) {
+                    dest.push_back(quad_off + pattern[k]);
+                }
+                quad_off += 4;
             }
         }
+    }
+
+    vector<u32> generate_foreground_indices(const life_data& ld) noexcept {
+        vector<u32> result;
+        generate_tilemap_indices_internal(ld, result, [](const life_data& data, auto x, auto y) -> bool {
+            return data.living_layer[y * data.width + x];
+        });
         return result;
     }
 
-    vector<v3f> generate_tilemap_vertices(const life_data& ld) noexcept {
+    vector<u32> generate_background_indices(const life_data& ld) noexcept {
+        vector<u32> result;
+        result.reserve(ld.width * ld.height * 6);
+        generate_tilemap_indices_internal(ld, result, [](const life_data& data, auto x, auto y) -> bool {
+            E2D_UNUSED(data, x, y);
+            return true;
+        });
+        return result;
+    }
+
+    template<typename Ft>
+    void generate_tilemap_vertices_internal(const life_data& ld,
+                                           vector<v3f>& dest,
+                                           Ft&& pred) {
         const f32 hw = map_definition::tile_size;
         const f32 hh = map_definition::tile_size;
         const f32 woff = -hw * f32(ld.width) / 2.f;
         const f32 hoff = -hh * f32(ld.height) / 2.f;
 
-        vector<v3f> result;
-        result.reserve(ld.width * ld.height * 4);
-        for(uint8_t j = 0; j < ld.height; ++j) {
-            for(uint8_t i = 0; i < ld.width; ++i) {
-                result.emplace_back(woff + hw * (i    ), hoff + hh * (j + 1), 1.f);
-                result.emplace_back(woff + hw * (i    ), hoff + hh * (j    ), 1.f);
-                result.emplace_back(woff + hw * (i + 1), hoff + hh * (j + 1), 1.f);
-                result.emplace_back(woff + hw * (i + 1), hoff + hh * (j    ), 1.f);
+        for(size_t j = 0; j < ld.height; ++j){
+            for(size_t i = 0; i < ld.width; ++i) {
+                if(!pred(ld, i, j)) {
+                    continue;
+                }
+                dest.emplace_back(woff + hw * (i    ), hoff + hh * (j + 1), 1.f);
+                dest.emplace_back(woff + hw * (i    ), hoff + hh * (j    ), 1.f);
+                dest.emplace_back(woff + hw * (i + 1), hoff + hh * (j + 1), 1.f);
+                dest.emplace_back(woff + hw * (i + 1), hoff + hh * (j    ), 1.f);
             }
         }
+    }
+
+    vector<v3f> generate_background_vertices(const life_data& ld) noexcept {
+        vector<v3f> result;
+        result.reserve(ld.width * ld.height * 4);
+        generate_tilemap_vertices_internal(ld, result,
+            [](const life_data& data, auto x, auto y) -> bool {
+                E2D_UNUSED(data, x, y);
+                return true;
+            });
         return result;
+    }
+
+    vector<v3f> generate_foreground_vertices(const life_data& ld) noexcept {
+        vector<v3f> result;
+        result.reserve(ld.width * ld.height * 4);
+        generate_tilemap_vertices_internal(ld, result,
+            [](const life_data& data, auto x, auto y) -> bool {
+                return data.living_layer[y * data.width + x];
+            });
+        return result;
+    }
+
+    template<typename Ft>
+    void generate_uvs_internal(const life_data& ld,
+                               vector<v2f>& dest,
+                               Ft&& pred) {
+        for(size_t j = 0; j < ld.height; ++j){
+            for(size_t i = 0; i < ld.width; ++i) {
+                std::tuple<bool, f32, f32> predicateResult = pred(ld, i, j);
+                if(!std::get<0>(predicateResult)) {
+                    continue;
+                }
+                f32 woff = std::get<1>(predicateResult);
+                f32 hoff = std::get<2>(predicateResult);
+                dest.emplace_back(woff      , hoff + .5f);
+                dest.emplace_back(woff      , hoff      );
+                dest.emplace_back(woff + .5f, hoff + .5f);
+                dest.emplace_back(woff + .5f, hoff      );
+            }
+        }
     }
 
     vector<v2f> generate_background_uvs(const life_data& ld) noexcept {
         vector<v2f> result;
         result.reserve(ld.width * ld.height * 4);
-        for(uint8_t j = 0; j < ld.height; ++j) {
-            for(uint8_t i = 0; i < ld.width; ++i) {
-                f32 woff, hoff;
-                switch(ld.background_layer[j * ld.width + i]) {
-                    case map_definition::back_tile_1:
-                        woff = 0.f; hoff = 0.5f;
-                        break;
-                    case map_definition::back_tile_2:
-                        woff = 0.5f; hoff = 0.5f;
-                        break;
-                    case map_definition::blocker_tile:
-                        woff = 0.5f; hoff = 0.f;
-                        break;
-                    default:
-                        woff = 0.f; hoff = 0.f;
-                        break;
-                }
-                result.emplace_back(woff      , hoff + .5f);
-                result.emplace_back(woff      , hoff      );
-                result.emplace_back(woff + .5f, hoff + .5f);
-                result.emplace_back(woff + .5f, hoff      );
-            }
-        }
+        generate_uvs_internal(ld, result,
+            [](const life_data& data, auto x, auto y) {
+                const auto tile_id = data.background_layer[x + y * data.width];
+                const auto offs = map_definition::tile_uv_offsets[tile_id];
+                return std::make_tuple(true, offs.x, offs.y);
+            });
         return result;
     }
 
     vector<v2f> generate_foreground_uvs(const life_data& ld) noexcept {
         vector<v2f> result;
-        const f32 woff = 0.f, hoff = 0.f;
         result.reserve(ld.width * ld.height * 4);
-        for(uint8_t j = 0; j < ld.height; ++j) {
-            for(uint8_t i = 0; i < ld.width; ++i) {
-                result.emplace_back(woff      , hoff + .5f);
-                result.emplace_back(woff      , hoff      );
-                result.emplace_back(woff + .5f, hoff + .5f);
-                result.emplace_back(woff + .5f, hoff      );
-            }
-        }
-        return result;
-    }
-
-    vector<color32> generate_background_colors(const life_data& ld) noexcept {
-        vector<color32> result;
-        result.reserve(ld.width * ld.height * 4);
-        for(uint8_t j = 0; j < ld.height; ++j) {
-            for(uint8_t i = 0; i < ld.width; ++i) {
-                result.push_back(color32::white());
-                result.push_back(color32::white());
-                result.push_back(color32::white());
-                result.push_back(color32::white());
-            }
-        }
-        return result;
-    }
-
-    vector<color32> generate_foreground_colors(const life_data& ld) noexcept {
-        vector<color32> result;
-        result.reserve(ld.width * ld.height * 4);
-        for(uint8_t j = 0; j < ld.height; ++j) {
-            for(uint8_t i = 0; i < ld.width; ++i) {
-                color32 c = color32::white();
-                if(!ld.living_layer[j * ld.width + i]) {
-                    c.a = 0;
-                }
-                result.push_back(c);
-                result.push_back(c);
-                result.push_back(c);
-                result.push_back(c);
-            }
-        }        
+        generate_uvs_internal(ld, result,
+            [](const life_data& data, auto x, auto y) {
+                return std::make_tuple(data.living_layer[x + y * data.width], 0.0f, 0.0f);
+            });
         return result;
     }
 
@@ -169,16 +178,16 @@ namespace
                             const auto kill_me_for_mercy = alone || nothing_to_eat;
 
                             if(!cell_habitated && romantic_vibe) {
-                                map_definition::buffer[stride(i, j)] = true;
+                                data.living_buffer[stride(i, j)] = true;
                             } else if(cell_habitated && kill_me_for_mercy) {
-                                map_definition::buffer[stride(i, j)] = false;
+                                data.living_buffer[stride(i, j)] = false;
                             } else {
-                                map_definition::buffer[stride(i, j)] =
+                                data.living_buffer[stride(i, j)] =
                                      data.living_layer[stride(i, j)];
                             }                            
                         }
                     }
-                    data.living_layer.swap(map_definition::buffer);
+                    data.living_layer.swap(data.living_buffer);
                     #undef get_living_at
                     #undef stride
                     data.is_dirty = true;
@@ -197,17 +206,24 @@ namespace
                     model_renderer& rdr = fore_e.get_component<model_renderer>();
                     const model_asset::ptr& model_res = rdr.model();
 
+                    vector<v3f> fore_tangents(0);
+                    vector<v3f> fore_bitangents(0);
+                    vector<color32> fore_colors(0);
+
                     mesh fore_mesh;
-                    fore_mesh.set_vertices(generate_tilemap_vertices(data));
-                    fore_mesh.set_indices(0, generate_tile_map_indices(data));
-                    fore_mesh.set_colors(0, generate_foreground_colors(data));
+                    fore_mesh.set_vertices(generate_foreground_vertices(data));
+                    fore_mesh.set_indices(0, generate_foreground_indices(data));
                     fore_mesh.set_uvs(0, generate_foreground_uvs(data));
-                    auto fore_mesh_asset = mesh_asset::create(fore_mesh);
+                    fore_mesh.set_colors(0, std::move(fore_colors));
+                    fore_mesh.set_tangents(std::move(fore_tangents));
+                    fore_mesh.set_bitangents(std::move(fore_bitangents));
+
+                    auto fore_mesh_asset = mesh_asset::create(std::move(fore_mesh));
 
                     model fore_model;
                     fore_model.set_mesh(fore_mesh_asset);
                     fore_model.regenerate_geometry(the<render>());
-                    model_res->fill(fore_model);
+                    model_res->fill(std::move(fore_model));
             });
         }
     };
@@ -272,52 +288,72 @@ namespace
         bool create_scene() const {
             life_data life_component;
             srand(unsigned(std::time(nullptr)));
-            life_component.living_layer.fill(false);
+            life_component.living_buffer.fill(false);
             life_component.is_dirty = false;
             for(size_t i = 0; i < map_definition::map_width * map_definition::map_height;++i) {
                 if((i / map_definition::map_width > 0) &&
                    (i % map_definition::map_width > 0) &&
                    (i / map_definition::map_width < map_definition::map_height - 1) &&
-                   (i % map_definition::map_width < map_definition::map_width  - 1) &&
-                   rand() % 2 == 0) {
-                    life_component.living_layer[i] = true;
+                   (i % map_definition::map_width < map_definition::map_width  - 1)) {
+                    life_component.background_layer[i] =
+                        rand() % 2 == 0 ?
+                            map_definition::back_tile_1 :
+                            map_definition::back_tile_2;
+                    life_component.living_layer[i] = rand() % 2 == 0;
                 }
-                life_component.background_layer[i] = map_definition::background_layer_data[i];
+                else {
+                    life_component.background_layer[i] = map_definition::blocker_tile;
+                    life_component.living_layer[i] = false;
+                }
             }
 
             auto tilemap_mat = the<library>().load_asset<material_asset>("material.json");
             if(!tilemap_mat)
                 return false;
 
+            vector<v3f> fore_tangents(0);
+            vector<v3f> fore_bitangents(0);
+            vector<color32> fore_colors(0);
+
             mesh fore_mesh;
-            fore_mesh.set_vertices(generate_tilemap_vertices(life_component));
-            fore_mesh.set_indices(0, generate_tile_map_indices(life_component));
-            fore_mesh.set_colors(0, generate_foreground_colors(life_component));
+            fore_mesh.set_vertices(generate_foreground_vertices(life_component));
+            fore_mesh.set_indices(0, generate_foreground_indices(life_component));
             fore_mesh.set_uvs(0, generate_foreground_uvs(life_component));
-            auto fore_mesh_asset = mesh_asset::create(fore_mesh);
+            fore_mesh.set_colors(0, std::move(fore_colors));
+            fore_mesh.set_tangents(std::move(fore_tangents));
+            fore_mesh.set_bitangents(std::move(fore_bitangents));
+
+            auto fore_mesh_asset = mesh_asset::create(std::move(fore_mesh));
             if(!fore_mesh_asset)
                 return false;
 
             model fore_model;
             fore_model.set_mesh(fore_mesh_asset);
             fore_model.regenerate_geometry(the<render>());
-            auto fore_model_asset = model_asset::create(fore_model);
+            auto fore_model_asset = model_asset::create(std::move(fore_model));
             if(!fore_model_asset)
                 return false;
 
+            vector<v3f> back_tangents(0);
+            vector<v3f> back_bitangents(0);
+            vector<color32> back_colors(0);
+
             mesh back_mesh;
-            back_mesh.set_vertices(generate_tilemap_vertices(life_component));
-            back_mesh.set_indices(0, generate_tile_map_indices(life_component));
-            back_mesh.set_colors(0, generate_background_colors(life_component));
+            back_mesh.set_vertices(generate_background_vertices(life_component));
+            back_mesh.set_indices(0, generate_background_indices(life_component));
             back_mesh.set_uvs(0, generate_background_uvs(life_component));
-            auto back_mesh_asset = mesh_asset::create(back_mesh);
+            fore_mesh.set_colors(0, std::move(back_colors));
+            back_mesh.set_tangents(std::move(back_tangents));
+            back_mesh.set_bitangents(std::move(back_bitangents));
+
+            auto back_mesh_asset = mesh_asset::create(std::move(back_mesh));
             if(!back_mesh_asset)
                 return false;
 
             model back_model;
             back_model.set_mesh(back_mesh_asset);
             back_model.regenerate_geometry(the<render>());
-            auto back_model_asset = model_asset::create(back_model);
+            auto back_model_asset = model_asset::create(std::move(back_model));
             if(!back_model_asset)
                 return false;
 
